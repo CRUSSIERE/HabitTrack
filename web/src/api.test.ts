@@ -44,12 +44,13 @@ describe("api", () => {
   });
 
   it("checkIn POSTs to the completions endpoint", async () => {
-    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(mockHabit, 201));
-    await checkIn("h1", "2026-01-02");
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ habit: mockHabit, xpGained: 10, newBadges: [] }, 201));
+    const result = await checkIn("h1", "2026-01-02");
     expect(fetch).toHaveBeenCalledWith(
       "/api/habits/h1/completions",
       expect.objectContaining({ method: "POST", body: JSON.stringify({ date: "2026-01-02" }) }),
     );
+    expect(result).toEqual({ habit: mockHabit, xpGained: 10, newBadges: [] });
   });
 
   it("uncheckIn and deleteHabit return undefined on 204", async () => {

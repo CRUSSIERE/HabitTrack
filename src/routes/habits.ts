@@ -2,6 +2,8 @@ import { Router, type NextFunction, type Request, type Response } from "express"
 import { Prisma } from "@prisma/client";
 import { prisma } from "../db.ts";
 import { calcStreak, calcCompletionRate, type Frequency } from "../streak.ts";
+import { XP_FOR_FREQUENCY, CHALLENGE_TARGET, CHALLENGE_BONUS_XP, newlyCrossedBadges } from "../gamification.ts";
+import { getProfile, getWeeklyProgress } from "./gamification.ts";
 
 export const habitsRouter = Router();
 
@@ -89,6 +91,46 @@ habitsRouter.delete("/:id", async (req, res, next) => {
   res.status(204).end();
 });
 
+// Awards XP/badges/weekly-challenge bonus for a genuinely new completion.
+// Must be called after the completion row exists (weekly progress reads it back).
+async function applyCheckinGamification(
+  frequency: Frequency,
+  priorDates: Date[],
+  totalBefore: number,
+  date: Date,
+): Promise<{ xpGained: number; newBadges: string[] }> {
+  const prevStreak = calcStreak(frequency, priorDates);
+  const newStreak = calcStreak(frequency, [...priorDates, date]);
+  const badgesCrossed = [
+    ...newlyCrossedBadges("streak", prevStreak, newStreak),
+    ...newlyCrossedBadges("checkins", totalBefore, totalBefore + 1),
+  ];
+
+  for (const badge of badgesCrossed) {
+    await prisma.unlockedBadge.upsert({ where: { key: badge.key }, create: { key: badge.key }, update: {} });
+  }
+
+  let xpGained = XP_FOR_FREQUENCY[frequency];
+
+  const { weekStart: ws, progress } = await getWeeklyProgress();
+  if (progress >= CHALLENGE_TARGET) {
+    const challenge = await prisma.weeklyChallenge.findUnique({ where: { weekStart: ws } });
+    if (!challenge?.xpAwarded) {
+      xpGained += CHALLENGE_BONUS_XP;
+      await prisma.weeklyChallenge.upsert({
+        where: { weekStart: ws },
+        create: { weekStart: ws, xpAwarded: true },
+        update: { xpAwarded: true },
+      });
+    }
+  }
+
+  const profile = await getProfile();
+  await prisma.profile.update({ where: { id: profile.id }, data: { totalXp: profile.totalXp + xpGained } });
+
+  return { xpGained, newBadges: badgesCrossed.map((b) => b.key) };
+}
+
 habitsRouter.post(
   "/:id/completions",
   ah(async (req, res) => {
@@ -99,11 +141,15 @@ habitsRouter.post(
       return;
     }
 
-    const habit = await prisma.habit.findUnique({ where: { id: req.params.id } });
+    const habit = await prisma.habit.findUnique({ where: { id: req.params.id }, include: { completions: true } });
     if (!habit) {
       res.status(404).json({ error: "not found" });
       return;
     }
+
+    const priorDates = habit.completions.map((c) => c.date);
+    const alreadyCheckedIn = priorDates.some((d) => d.getTime() === date.getTime());
+    const totalBefore = alreadyCheckedIn ? 0 : await prisma.completion.count();
 
     await prisma.completion.upsert({
       where: { habitId_date: { habitId: habit.id, date } },
@@ -111,8 +157,16 @@ habitsRouter.post(
       update: {},
     });
 
+    let xpGained = 0;
+    let newBadges: string[] = [];
+    if (!alreadyCheckedIn) {
+      const result = await applyCheckinGamification(habit.frequency, priorDates, totalBefore, date);
+      xpGained = result.xpGained;
+      newBadges = result.newBadges;
+    }
+
     const updated = await prisma.habit.findUniqueOrThrow({ where: { id: habit.id }, include: { completions: true } });
-    res.status(201).json(serialize(updated));
+    res.status(201).json({ habit: serialize(updated), xpGained, newBadges });
   }),
 );
 

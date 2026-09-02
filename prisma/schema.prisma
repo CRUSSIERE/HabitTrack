@@ -28,3 +28,18 @@ model Completion {
 
   @@unique([habitId, date])
 }
+
+model Profile {
+  id      String @id @default("main")
+  totalXp Int    @default(0)
+}
+
+model UnlockedBadge {
+  key        String   @id
+  unlockedAt DateTime @default(now())
+}
+
+model WeeklyChallenge {
+  weekStart DateTime @id @db.Date
+  xpAwarded Boolean  @default(false)
+}

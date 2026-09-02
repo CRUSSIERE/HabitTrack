@@ -7,7 +7,7 @@ function toUTCDay(date: Date): number {
 }
 
 // ISO week start (Monday), as a UTC-day timestamp.
-function weekStart(date: Date): number {
+export function weekStart(date: Date): number {
   const day = toUTCDay(date);
   const weekday = new Date(day).getUTCDay(); // 0=Sun..6=Sat
   const offset = weekday === 0 ? 6 : weekday - 1; // days since Monday

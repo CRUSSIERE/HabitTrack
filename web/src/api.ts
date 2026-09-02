@@ -1,9 +1,10 @@
-import type { Frequency, Habit } from "./types";
+import type { CheckinResult, Frequency, GamificationState, Habit } from "./types";
 
 const BASE = "/api/habits";
+const GAMIFICATION_BASE = "/api/gamification";
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
+async function request<T>(path: string, init?: RequestInit, base = BASE): Promise<T> {
+  const res = await fetch(`${base}${path}`, {
     ...init,
     headers: { "Content-Type": "application/json", ...init?.headers },
   });
@@ -23,9 +24,11 @@ export const createHabit = (name: string, frequency: Frequency) =>
 export const deleteHabit = (id: string) => request<void>(`/${id}`, { method: "DELETE" });
 
 export const checkIn = (id: string, date?: string) =>
-  request<Habit>(`/${id}/completions`, { method: "POST", body: JSON.stringify({ date }) });
+  request<CheckinResult>(`/${id}/completions`, { method: "POST", body: JSON.stringify({ date }) });
 
 export const uncheckIn = (id: string, date: string) =>
   request<void>(`/${id}/completions/${date}`, { method: "DELETE" });
+
+export const getGamification = () => request<GamificationState>("", undefined, GAMIFICATION_BASE);
 
 export const todayISO = () => new Date().toISOString().slice(0, 10);
