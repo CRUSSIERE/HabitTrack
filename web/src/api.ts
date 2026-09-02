@@ -29,6 +29,9 @@ export const checkIn = (id: string, date?: string) =>
 export const uncheckIn = (id: string, date: string) =>
   request<void>(`/${id}/completions/${date}`, { method: "DELETE" });
 
+export const getCompletions = (id: string, from: string, to: string) =>
+  request<{ dates: string[] }>(`/${id}/completions?from=${from}&to=${to}`);
+
 export const getGamification = () => request<GamificationState>("", undefined, GAMIFICATION_BASE);
 
 export const todayISO = () => new Date().toISOString().slice(0, 10);

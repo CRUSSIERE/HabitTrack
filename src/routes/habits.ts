@@ -82,6 +82,41 @@ habitsRouter.get(
   }),
 );
 
+const MAX_RANGE_DAYS = 366;
+
+habitsRouter.get(
+  "/:id/completions",
+  ah(async (req, res) => {
+    const { from, to } = req.query;
+    if (typeof from !== "string" || typeof to !== "string") {
+      res.status(400).json({ error: "from and to (YYYY-MM-DD) are required" });
+      return;
+    }
+    const fromDate = new Date(`${from}T00:00:00.000Z`);
+    const toDate = new Date(`${to}T00:00:00.000Z`);
+    if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime()) || fromDate > toDate) {
+      res.status(400).json({ error: "invalid date range" });
+      return;
+    }
+    if ((toDate.getTime() - fromDate.getTime()) / (24 * 60 * 60 * 1000) > MAX_RANGE_DAYS) {
+      res.status(400).json({ error: `range must not exceed ${MAX_RANGE_DAYS} days` });
+      return;
+    }
+
+    const habit = await prisma.habit.findUnique({ where: { id: req.params.id } });
+    if (!habit) {
+      res.status(404).json({ error: "not found" });
+      return;
+    }
+
+    const completions = await prisma.completion.findMany({
+      where: { habitId: habit.id, date: { gte: fromDate, lte: toDate } },
+      select: { date: true },
+    });
+    res.json({ dates: completions.map((c) => c.date.toISOString().slice(0, 10)) });
+  }),
+);
+
 habitsRouter.delete("/:id", async (req, res, next) => {
   try {
     await prisma.habit.delete({ where: { id: req.params.id } });

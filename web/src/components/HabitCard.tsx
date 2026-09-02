@@ -5,10 +5,12 @@ export function HabitCard({
   habit,
   onToggle,
   onDelete,
+  onOpenCalendar,
 }: {
   habit: Habit;
   onToggle: (id: string, checked: boolean) => Promise<void>;
   onDelete: (id: string) => void;
+  onOpenCalendar: (id: string) => void;
 }) {
   const pct = Math.round(habit.completionRate30d * 100);
   const [toggling, setToggling] = useState(false);
@@ -63,6 +65,14 @@ export function HabitCard({
           </div>
         </div>
       </div>
+
+      <button
+        onClick={() => onOpenCalendar(habit.id)}
+        aria-label="View calendar"
+        className="shrink-0 rounded-full p-2 text-stone-300 opacity-0 transition hover:bg-stone-100 hover:text-stone-500 group-hover:opacity-100"
+      >
+        📅
+      </button>
 
       <button
         onClick={() => onDelete(habit.id)}

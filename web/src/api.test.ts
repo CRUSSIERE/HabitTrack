@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { checkIn, createHabit, deleteHabit, listHabits, todayISO, uncheckIn } from "./api";
+import { checkIn, createHabit, deleteHabit, getCompletions, listHabits, todayISO, uncheckIn } from "./api";
 
 const mockHabit = {
   id: "h1",
@@ -59,6 +59,16 @@ describe("api", () => {
 
     vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 204 }));
     await expect(deleteHabit("h1")).resolves.toBeUndefined();
+  });
+
+  it("getCompletions GETs the range endpoint with from/to query params", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ dates: ["2026-01-02"] }));
+    const result = await getCompletions("h1", "2026-01-01", "2026-01-31");
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/habits/h1/completions?from=2026-01-01&to=2026-01-31",
+      expect.objectContaining({ headers: { "Content-Type": "application/json" } }),
+    );
+    expect(result).toEqual({ dates: ["2026-01-02"] });
   });
 
   it("throws the server's error message on a non-2xx response", async () => {

@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { checkIn, createHabit, deleteHabit, getGamification, listHabits, todayISO, uncheckIn } from "./api";
 import { BadgeList } from "./components/BadgeList";
+import { CalendarView } from "./components/CalendarView";
 import { EmptyState } from "./components/EmptyState";
 import { GamificationHeader } from "./components/GamificationHeader";
 import { HabitList } from "./components/HabitList";
 import { NewHabitForm } from "./components/NewHabitForm";
 import { WeeklyChallengeCard } from "./components/WeeklyChallengeCard";
 import { XpToast } from "./components/XpToast";
-import type { Frequency, GamificationState, Habit } from "./types";
+import type { CheckinResult, Frequency, GamificationState, Habit } from "./types";
 
 export default function App() {
   const [habits, setHabits] = useState<Habit[] | null>(null);
@@ -15,6 +16,7 @@ export default function App() {
   const [xpToast, setXpToast] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [calendarHabitId, setCalendarHabitId] = useState<string | null>(null);
 
   useEffect(() => {
     listHabits()
@@ -36,17 +38,20 @@ export default function App() {
     }
   }
 
+  async function applyCheckinResult(result: CheckinResult) {
+    setHabits((prev) => prev?.map((h) => (h.id === result.habit.id ? result.habit : h)) ?? prev);
+    if (result.xpGained > 0) {
+      setXpToast(result.xpGained);
+      setGamification(await getGamification());
+    }
+  }
+
   async function handleToggle(id: string, checked: boolean) {
     setError(null);
     setHabits((prev) => prev?.map((h) => (h.id === id ? { ...h, checkedToday: checked } : h)) ?? prev);
     try {
       if (checked) {
-        const result = await checkIn(id);
-        setHabits((prev) => prev?.map((h) => (h.id === id ? result.habit : h)) ?? prev);
-        if (result.xpGained > 0) {
-          setXpToast(result.xpGained);
-          setGamification(await getGamification());
-        }
+        await applyCheckinResult(await checkIn(id));
       } else {
         await uncheckIn(id, todayISO());
         setHabits(await listHabits());
@@ -54,6 +59,14 @@ export default function App() {
     } catch (e) {
       setError((e as Error).message);
       setHabits(await listHabits().catch(() => habits));
+    }
+  }
+
+  async function refreshHabits() {
+    try {
+      setHabits(await listHabits());
+    } catch (e) {
+      setError((e as Error).message);
     }
   }
 
@@ -107,7 +120,7 @@ export default function App() {
           <EmptyState onCreateClick={() => setShowForm(true)} />
         ) : (
           <>
-            <HabitList habits={habits} onToggle={handleToggle} onDelete={handleDelete} />
+            <HabitList habits={habits} onToggle={handleToggle} onDelete={handleDelete} onOpenCalendar={setCalendarHabitId} />
             {gamification && (
               <div className="mt-8 flex flex-col gap-4">
                 <WeeklyChallengeCard challenge={gamification.weeklyChallenge} />
@@ -117,6 +130,19 @@ export default function App() {
           </>
         )}
       </div>
+
+      {calendarHabitId &&
+        (() => {
+          const habit = habits?.find((h) => h.id === calendarHabitId);
+          return habit ? (
+            <CalendarView
+              habit={habit}
+              onClose={() => setCalendarHabitId(null)}
+              onCheckin={applyCheckinResult}
+              onUncheck={refreshHabits}
+            />
+          ) : null;
+        })()}
     </div>
   );
 }
