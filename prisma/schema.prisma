@@ -1,0 +1,30 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Frequency {
+  DAILY
+  WEEKLY
+}
+
+model Habit {
+  id          String       @id @default(cuid())
+  name        String
+  frequency   Frequency
+  createdAt   DateTime     @default(now())
+  completions Completion[]
+}
+
+model Completion {
+  id      String   @id @default(cuid())
+  habitId String
+  habit   Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  date    DateTime @db.Date
+
+  @@unique([habitId, date])
+}
