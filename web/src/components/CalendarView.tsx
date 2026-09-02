@@ -100,22 +100,22 @@ export function CalendarView({
   return (
     <div className="fixed inset-0 z-20 flex items-center justify-center bg-stone-900/40 px-4" onClick={onClose}>
       <div
-        className="w-full max-w-sm rounded-2xl border border-stone-200 bg-white p-5 shadow-lg"
+        className="w-full max-w-sm rounded-2xl border border-stone-200 bg-white p-5 shadow-lg dark:border-stone-700 dark:bg-stone-800"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="truncate text-sm font-semibold text-stone-900">{habit.name}</h2>
-          <button onClick={onClose} aria-label="Close calendar" className="rounded-full p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-600">
+          <h2 className="truncate text-sm font-semibold text-stone-900 dark:text-stone-100">{habit.name}</h2>
+          <button onClick={onClose} aria-label="Close calendar" className="rounded-full p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-600 dark:hover:bg-stone-700">
             ✕
           </button>
         </div>
 
         <div className="mb-3 flex items-center justify-between">
-          <button onClick={() => goMonth(-1)} aria-label="Previous month" className="rounded-full p-1.5 text-stone-500 hover:bg-stone-100">
+          <button onClick={() => goMonth(-1)} aria-label="Previous month" className="rounded-full p-1.5 text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-700">
             ‹
           </button>
-          <span className="text-sm font-medium text-stone-700">{monthLabel}</span>
-          <button onClick={() => goMonth(1)} aria-label="Next month" className="rounded-full p-1.5 text-stone-500 hover:bg-stone-100">
+          <span className="text-sm font-medium text-stone-700 dark:text-stone-300">{monthLabel}</span>
+          <button onClick={() => goMonth(1)} aria-label="Next month" className="rounded-full p-1.5 text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-700">
             ›
           </button>
         </div>
@@ -146,13 +146,13 @@ export function CalendarView({
                 aria-pressed={isChecked}
                 aria-label={`${iso}${isChecked ? ", completed" : ""}`}
                 className={`aspect-square rounded-md text-[11px] transition disabled:cursor-not-allowed ${
-                  !inMonth ? "text-stone-300" : "text-stone-600"
+                  !inMonth ? "text-stone-300 dark:text-stone-600" : "text-stone-600 dark:text-stone-300"
                 } ${
                   isChecked
                     ? "bg-accent-500 text-white hover:bg-accent-600"
                     : isFuture
-                      ? "bg-stone-50"
-                      : "bg-stone-100 hover:bg-stone-200"
+                      ? "bg-stone-50 dark:bg-stone-800"
+                      : "bg-stone-100 hover:bg-stone-200 dark:bg-stone-700 dark:hover:bg-stone-600"
                 }`}
               >
                 {day.getUTCDate()}

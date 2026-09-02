@@ -28,10 +28,10 @@ export function NewHabitForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex flex-col gap-4 rounded-3xl border border-stone-200 bg-white p-6 shadow-sm"
+      className="flex flex-col gap-4 rounded-3xl border border-stone-200 bg-white p-6 shadow-sm dark:border-stone-700 dark:bg-stone-800"
     >
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="habit-name" className="text-sm font-medium text-stone-700">
+        <label htmlFor="habit-name" className="text-sm font-medium text-stone-700 dark:text-stone-300">
           Habit name
         </label>
         <input
@@ -41,12 +41,12 @@ export function NewHabitForm({
           placeholder="Drink water"
           maxLength={200}
           autoFocus
-          className="rounded-xl border border-stone-200 px-3.5 py-2.5 text-sm text-stone-900 outline-none transition focus:border-accent-400 focus:ring-2 focus:ring-accent-100"
+          className="rounded-xl border border-stone-200 px-3.5 py-2.5 text-sm text-stone-900 outline-none transition focus:border-accent-400 focus:ring-2 focus:ring-accent-100 dark:border-stone-600 dark:bg-stone-900 dark:text-stone-100"
         />
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <span id="frequency-label" className="text-sm font-medium text-stone-700">
+        <span id="frequency-label" className="text-sm font-medium text-stone-700 dark:text-stone-300">
           Frequency
         </span>
         <div role="radiogroup" aria-labelledby="frequency-label" className="flex gap-2">
@@ -59,8 +59,8 @@ export function NewHabitForm({
               onClick={() => setFrequency(f)}
               className={`flex-1 rounded-xl border px-3.5 py-2 text-sm font-medium transition ${
                 frequency === f
-                  ? "border-accent-500 bg-accent-50 text-accent-700"
-                  : "border-stone-200 text-stone-600 hover:border-stone-300"
+                  ? "border-accent-500 bg-accent-50 text-accent-700 dark:bg-accent-500/20 dark:text-accent-300"
+                  : "border-stone-200 text-stone-600 hover:border-stone-300 dark:border-stone-600 dark:text-stone-300"
               }`}
             >
               {f === "DAILY" ? "Daily" : "Weekly"}
@@ -80,7 +80,7 @@ export function NewHabitForm({
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-full px-4 py-2.5 text-sm font-medium text-stone-500 transition hover:bg-stone-100"
+          className="rounded-full px-4 py-2.5 text-sm font-medium text-stone-500 transition hover:bg-stone-100 dark:hover:bg-stone-700"
         >
           Cancel
         </button>

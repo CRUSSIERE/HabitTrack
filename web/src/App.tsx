@@ -6,8 +6,10 @@ import { EmptyState } from "./components/EmptyState";
 import { GamificationHeader } from "./components/GamificationHeader";
 import { HabitList } from "./components/HabitList";
 import { NewHabitForm } from "./components/NewHabitForm";
+import { SettingsView } from "./components/SettingsView";
 import { WeeklyChallengeCard } from "./components/WeeklyChallengeCard";
 import { XpToast } from "./components/XpToast";
+import { useTheme } from "./hooks/useTheme";
 import type { CheckinResult, Frequency, GamificationState, Habit } from "./types";
 
 export default function App() {
@@ -15,8 +17,10 @@ export default function App() {
   const [gamification, setGamification] = useState<GamificationState | null>(null);
   const [xpToast, setXpToast] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [calendarHabitId, setCalendarHabitId] = useState<string | null>(null);
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     listHabits()
@@ -70,6 +74,15 @@ export default function App() {
     }
   }
 
+  async function refreshAll() {
+    await refreshHabits();
+    try {
+      setGamification(await getGamification());
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
   async function handleDelete(id: string) {
     setError(null);
     setHabits((prev) => prev?.filter((h) => h.id !== id) ?? prev);
@@ -81,13 +94,13 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-stone-50">
+    <div className="min-h-screen bg-stone-50 dark:bg-stone-900">
       {xpToast !== null && <XpToast xp={xpToast} onDone={() => setXpToast(null)} />}
       <div className="mx-auto max-w-xl px-6 py-16">
         <header className="mb-10 flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-stone-900">HabitTrack</h1>
-            <p className="mt-1 text-sm text-stone-500">Small habits, tracked daily.</p>
+            <h1 className="text-2xl font-semibold tracking-tight text-stone-900 dark:text-stone-100">HabitTrack</h1>
+            <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">Small habits, tracked daily.</p>
           </div>
           <div className="flex items-center gap-3">
             {gamification && <GamificationHeader gamification={gamification} />}
@@ -99,6 +112,13 @@ export default function App() {
                 + New habit
               </button>
             )}
+            <button
+              onClick={() => setShowSettings(true)}
+              aria-label="Open settings"
+              className="shrink-0 rounded-full p-2 text-stone-400 transition hover:bg-stone-100 hover:text-stone-600 dark:hover:bg-stone-800 dark:hover:text-stone-200"
+            >
+              ⚙️
+            </button>
           </div>
         </header>
 
@@ -143,6 +163,16 @@ export default function App() {
             />
           ) : null;
         })()}
+
+      {showSettings && (
+        <SettingsView
+          onClose={() => setShowSettings(false)}
+          onHabitsChanged={refreshHabits}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          onDataReset={refreshAll}
+        />
+      )}
     </div>
   );
 }

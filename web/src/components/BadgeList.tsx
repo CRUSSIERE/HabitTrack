@@ -19,11 +19,13 @@ export function BadgeList({ badges }: { badges: Badge[] }) {
             key={badge.key}
             title={badge.unlocked ? `Unlocked ${new Date(badge.unlockedAt!).toLocaleDateString()}` : "Locked"}
             className={`flex flex-col items-center gap-1 rounded-2xl border p-3 text-center transition ${
-              badge.unlocked ? "border-accent-200 bg-accent-50" : "border-stone-200 bg-stone-50 opacity-40 grayscale"
+              badge.unlocked
+                ? "border-accent-200 bg-accent-50 dark:border-accent-500/30 dark:bg-accent-500/10"
+                : "border-stone-200 bg-stone-50 opacity-40 grayscale dark:border-stone-700 dark:bg-stone-800"
             }`}
           >
             <span className="text-xl">{meta.icon}</span>
-            <span className="text-[11px] font-medium text-stone-600">{meta.label}</span>
+            <span className="text-[11px] font-medium text-stone-600 dark:text-stone-300">{meta.label}</span>
           </div>
         );
       })}

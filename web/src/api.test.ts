@@ -1,10 +1,23 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { checkIn, createHabit, deleteHabit, getCompletions, listHabits, todayISO, uncheckIn } from "./api";
+import {
+  checkIn,
+  createHabit,
+  deleteHabit,
+  getCompletions,
+  listHabits,
+  reorderHabits,
+  resetAllData,
+  todayISO,
+  uncheckIn,
+  updateHabit,
+} from "./api";
 
 const mockHabit = {
   id: "h1",
   name: "Read",
   frequency: "DAILY" as const,
+  order: 0,
+  archived: false,
   createdAt: "2026-01-01T00:00:00.000Z",
   streak: 3,
   completionRate30d: 0.5,
@@ -41,6 +54,39 @@ describe("api", () => {
       "/api/habits",
       expect.objectContaining({ method: "POST", body: JSON.stringify({ name: "Read", frequency: "DAILY" }) }),
     );
+  });
+
+  it("listHabits(true) includes archived habits in the query", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse([mockHabit]));
+    await listHabits(true);
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/habits?includeArchived=true",
+      expect.objectContaining({ headers: { "Content-Type": "application/json" } }),
+    );
+  });
+
+  it("updateHabit PATCHes only the given fields", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ ...mockHabit, archived: true }));
+    await updateHabit("h1", { archived: true });
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/habits/h1",
+      expect.objectContaining({ method: "PATCH", body: JSON.stringify({ archived: true }) }),
+    );
+  });
+
+  it("reorderHabits POSTs the ordered id list", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 204 }));
+    await reorderHabits(["h2", "h1"]);
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/habits/reorder",
+      expect.objectContaining({ method: "POST", body: JSON.stringify({ ids: ["h2", "h1"] }) }),
+    );
+  });
+
+  it("resetAllData POSTs to the settings reset endpoint", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 204 }));
+    await resetAllData();
+    expect(fetch).toHaveBeenCalledWith("/api/settings/reset", expect.objectContaining({ method: "POST" }));
   });
 
   it("checkIn POSTs to the completions endpoint", async () => {

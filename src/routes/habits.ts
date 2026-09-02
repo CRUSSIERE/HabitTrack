@@ -29,12 +29,22 @@ function isToday(date: Date): boolean {
   return date.toISOString().slice(0, 10) === new Date().toISOString().slice(0, 10);
 }
 
-function serialize(habit: { id: string; name: string; frequency: Frequency; createdAt: Date; completions: { date: Date }[] }) {
+function serialize(habit: {
+  id: string;
+  name: string;
+  frequency: Frequency;
+  order: number;
+  archived: boolean;
+  createdAt: Date;
+  completions: { date: Date }[];
+}) {
   const dates = habit.completions.map((c) => c.date);
   return {
     id: habit.id,
     name: habit.name,
     frequency: habit.frequency,
+    order: habit.order,
+    archived: habit.archived,
     createdAt: habit.createdAt,
     streak: calcStreak(habit.frequency, dates),
     completionRate30d: calcCompletionRate(habit.frequency, dates),
@@ -57,16 +67,95 @@ habitsRouter.post(
       });
       return;
     }
-    const habit = await prisma.habit.create({ data: { name, frequency }, include: { completions: true } });
+    const count = await prisma.habit.count();
+    const habit = await prisma.habit.create({ data: { name, frequency, order: count }, include: { completions: true } });
     res.status(201).json(serialize(habit));
   }),
 );
 
 habitsRouter.get(
   "/",
-  ah(async (_req, res) => {
-    const habits = await prisma.habit.findMany({ include: { completions: true }, orderBy: { createdAt: "asc" } });
+  ah(async (req, res) => {
+    const includeArchived = req.query.includeArchived === "true";
+    const habits = await prisma.habit.findMany({
+      where: includeArchived ? {} : { archived: false },
+      include: { completions: true },
+      orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+    });
     res.json(habits.map(serialize));
+  }),
+);
+
+habitsRouter.patch(
+  "/:id",
+  ah(async (req, res) => {
+    const { name, frequency, archived } = req.body ?? {};
+    if (name !== undefined && (typeof name !== "string" || !name.trim() || name.length > MAX_NAME_LENGTH)) {
+      res.status(400).json({ error: `name must be a non-empty string, max ${MAX_NAME_LENGTH} chars` });
+      return;
+    }
+    if (frequency !== undefined && frequency !== "DAILY" && frequency !== "WEEKLY") {
+      res.status(400).json({ error: "frequency must be DAILY or WEEKLY" });
+      return;
+    }
+    if (archived !== undefined && typeof archived !== "boolean") {
+      res.status(400).json({ error: "archived must be a boolean" });
+      return;
+    }
+
+    try {
+      const habit = await prisma.habit.update({
+        where: { id: req.params.id },
+        data: {
+          ...(name !== undefined && { name: name.trim() }),
+          ...(frequency !== undefined && { frequency }),
+          ...(archived !== undefined && { archived }),
+        },
+        include: { completions: true },
+      });
+      res.json(serialize(habit));
+    } catch (err) {
+      if (isNotFoundError(err)) {
+        res.status(404).json({ error: "not found" });
+        return;
+      }
+      throw err;
+    }
+  }),
+);
+
+habitsRouter.post(
+  "/reorder",
+  ah(async (req, res) => {
+    const { ids } = req.body ?? {};
+    if (
+      !Array.isArray(ids) ||
+      ids.length === 0 ||
+      ids.some((id) => typeof id !== "string") ||
+      new Set(ids).size !== ids.length
+    ) {
+      res.status(400).json({ error: "ids must be a non-empty array of unique habit ids" });
+      return;
+    }
+
+    const total = await prisma.habit.count();
+    if (ids.length !== total) {
+      res.status(400).json({ error: `ids must include all ${total} habits, got ${ids.length}` });
+      return;
+    }
+
+    try {
+      await prisma.$transaction(
+        ids.map((id, index) => prisma.habit.update({ where: { id }, data: { order: index } })),
+      );
+    } catch (err) {
+      if (isNotFoundError(err)) {
+        res.status(404).json({ error: "one or more ids do not exist" });
+        return;
+      }
+      throw err;
+    }
+    res.status(204).end();
   }),
 );
 

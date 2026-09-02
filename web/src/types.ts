@@ -4,6 +4,8 @@ export interface Habit {
   id: string;
   name: string;
   frequency: Frequency;
+  order: number;
+  archived: boolean;
   createdAt: string;
   streak: number;
   completionRate30d: number;

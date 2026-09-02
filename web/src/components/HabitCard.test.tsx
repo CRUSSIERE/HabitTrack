@@ -7,6 +7,8 @@ const baseHabit: Habit = {
   id: "h1",
   name: "Read",
   frequency: "DAILY",
+  order: 0,
+  archived: false,
   createdAt: "2026-01-01T00:00:00.000Z",
   streak: 1,
   completionRate30d: 0.5,
